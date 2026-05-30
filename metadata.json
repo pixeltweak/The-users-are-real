@@ -1,0 +1,9 @@
+{
+  "name": "Veo Speech Studio",
+  "description": "Choose from 10 historical lookalike candidates or upload your own, insert your spoken quote, and select custom delivery intonations for high-fidelity speech video generation.",
+  "requestFramePermissions": [],
+  "prompt": "",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
