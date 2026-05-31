@@ -11,6 +11,10 @@ import LoadingIndicator from './components/LoadingIndicator';
 import PromptForm from './components/PromptForm';
 import VideoResult from './components/VideoResult';
 import {generateVideo} from './services/geminiService';
+import {AboutView} from './components/AboutView';
+import {BulkGenerateView} from './components/BulkGenerateView';
+import {ManageCandidatesView} from './components/ManageCandidatesView';
+import {Character, PRESET_CHARACTERS} from './components/characters';
 import {
   AppState,
   AspectRatio,
@@ -34,6 +38,42 @@ const App: React.FC = () => {
 
   const [initialFormValues, setInitialFormValues] =
     useState<GenerateVideoParams | null>(null);
+
+  // Load custom candidates and edits securely from localStorage
+  const [characters, setCharacters] = useState<Character[]>(() => {
+    const saved = localStorage.getItem('historical_characters_registry');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Failed to parse cached historical characters registry', e);
+      }
+    }
+    return PRESET_CHARACTERS;
+  });
+
+  const [activeTab, setActiveTab] = useState<'generate' | 'bulk' | 'candidates' | 'about'>('generate');
+
+  const handleUpdateCharacters = (newChars: Character[]) => {
+    setCharacters(newChars);
+    localStorage.setItem('historical_characters_registry', JSON.stringify(newChars));
+  };
+
+  const handleAddCustomCharacter = (char: Character) => {
+    const updated = [...characters, char];
+    handleUpdateCharacters(updated);
+  };
+
+  const handleRemoveCustomCharacter = (id: string) => {
+    const updated = characters.filter((c) => c.id !== id);
+    handleUpdateCharacters(updated);
+  };
+
+  const handleResetToDefaults = () => {
+    if (window.confirm('Are you sure you want to restore the 10 original lookalike presets and delete any custom representatives?')) {
+      handleUpdateCharacters(PRESET_CHARACTERS);
+    }
+  };
 
   useEffect(() => {
     const checkApiKey = async () => {
@@ -211,41 +251,131 @@ const App: React.FC = () => {
       {showApiKeyDialog && (
         <ApiKeyDialog onContinue={handleApiKeyDialogContinue} />
       )}
-      <header className="py-6 flex items-center justify-center px-8 relative z-10">
-        <h1 className="text-4xl sm:text-5xl font-semibold tracking-wide text-center bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-          Veo Speech Studio
-        </h1>
+
+      {/* Consistent, elegant top navigation bar */}
+      <header className="bg-[#0b0b0c]/90 backdrop-blur-md border-b border-gray-900 sticky top-0 z-40 w-full px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Branding Logo & Back to Generate home */}
+        <div 
+          onClick={() => setActiveTab('generate')} 
+          className="flex items-center gap-3 cursor-pointer group select-none"
+        >
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-900/40 group-hover:scale-105 transition-transform">
+            <span className="text-xs font-black text-white tracking-widest">UR</span>
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-base font-bold tracking-tight text-white group-hover:text-indigo-450 transition-colors">
+              The User Is Real
+            </h1>
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">
+              Historical voiceover synthesis
+            </span>
+          </div>
+        </div>
+
+        {/* Central visual navigation links */}
+        <nav className="flex items-center gap-1 bg-[#121214] border border-gray-800 rounded-xl p-1 shadow-inner">
+          <button
+            type="button"
+            onClick={() => setActiveTab('generate')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              activeTab === 'generate'
+                ? 'bg-[#1c1c1e] text-indigo-400 font-bold border border-gray-800 shadow shadow-black'
+                : 'text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent'
+            }`}
+          >
+            Generate
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setActiveTab('bulk')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              activeTab === 'bulk'
+                ? 'bg-[#1c1c1e] text-indigo-400 font-bold border border-gray-800 shadow shadow-black'
+                : 'text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent'
+            }`}
+          >
+            Bulk Generate
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('candidates')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              activeTab === 'candidates'
+                ? 'bg-[#1c1c1e] text-indigo-400 font-bold border border-gray-800 shadow shadow-black'
+                : 'text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent'
+            }`}
+          >
+            Candidates
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('about')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              activeTab === 'about'
+                ? 'bg-[#1c1c1e] text-indigo-400 font-bold border border-gray-800 shadow shadow-black'
+                : 'text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent'
+            }`}
+          >
+            About
+          </button>
+        </nav>
       </header>
-      <main className="w-full max-w-4xl mx-auto flex-grow flex flex-col p-4">
-        {appState === AppState.IDLE ? (
-          <div className="w-full bg-[#111112]/40 border border-gray-900 rounded-2xl p-6 sm:p-8 shadow-xl">
-            <PromptForm
-              onGenerate={handleGenerate}
-              initialValues={initialFormValues}
-            />
-          </div>
-        ) : (
-          <div className="flex-grow flex items-center justify-center">
-            {appState === AppState.LOADING && <LoadingIndicator />}
-            {appState === AppState.SUCCESS && videoUrl && (
-              <VideoResult
-                videoUrl={videoUrl}
-                onRetry={handleRetry}
-                onNewVideo={handleNewVideo}
-                onExtend={handleExtend}
-                canExtend={canExtend}
-                aspectRatio={lastConfig?.aspectRatio || AspectRatio.LANDSCAPE}
+
+      {/* Main Content Area */}
+      <main className="w-full max-w-4xl mx-auto flex-grow flex flex-col p-4 mt-2">
+        {activeTab === 'about' && (
+          <AboutView />
+        )}
+
+        {activeTab === 'bulk' && (
+          <BulkGenerateView characters={characters} />
+        )}
+
+        {activeTab === 'candidates' && (
+          <ManageCandidatesView
+            characters={characters}
+            onUpdateCharacters={handleUpdateCharacters}
+            onResetToDefaults={handleResetToDefaults}
+          />
+        )}
+
+        {activeTab === 'generate' && (
+          appState === AppState.IDLE ? (
+            <div className="w-full bg-[#111112]/40 border border-gray-900 rounded-2xl p-6 sm:p-8 shadow-xl">
+              <PromptForm
+                characters={characters}
+                onGenerate={handleGenerate}
+                initialValues={initialFormValues}
+                onAddCustomCharacter={handleAddCustomCharacter}
+                onRemoveCustomCharacter={handleRemoveCustomCharacter}
               />
-            )}
-            {appState === AppState.SUCCESS &&
-              !videoUrl &&
-              renderError(
-                'Video generated, but URL is missing. Please try again.',
+            </div>
+          ) : (
+            <div className="flex-grow flex items-center justify-center w-full">
+              {appState === AppState.LOADING && <LoadingIndicator />}
+              {appState === AppState.SUCCESS && videoUrl && (
+                <VideoResult
+                  videoUrl={videoUrl}
+                  onRetry={handleRetry}
+                  onNewVideo={handleNewVideo}
+                  onExtend={handleExtend}
+                  canExtend={canExtend}
+                  aspectRatio={lastConfig?.aspectRatio || AspectRatio.LANDSCAPE}
+                />
               )}
-            {appState === AppState.ERROR &&
-              errorMessage &&
-              renderError(errorMessage)}
-          </div>
+              {appState === AppState.SUCCESS &&
+                !videoUrl &&
+                renderError(
+                  'Video generated, but URL is missing. Please try again.',
+                )}
+              {appState === AppState.ERROR &&
+                errorMessage &&
+                renderError(errorMessage)}
+            </div>
+          )
         )}
       </main>
     </div>

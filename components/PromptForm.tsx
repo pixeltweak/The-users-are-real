@@ -24,8 +24,11 @@ import { Character, PRESET_CHARACTERS } from './characters';
 import { CharacterSelector } from './CharacterSelector';
 
 interface PromptFormProps {
+  characters: Character[];
   onGenerate: (params: GenerateVideoParams) => void;
   initialValues?: GenerateVideoParams | null;
+  onAddCustomCharacter: (character: Character, imageFile: ImageFile) => void;
+  onRemoveCustomCharacter: (id: string) => void;
 }
 
 const CustomSelect: React.FC<{
@@ -93,14 +96,50 @@ const urlToImageFile = async (url: string, filename: string): Promise<ImageFile>
   return { file, base64 };
 };
 
-const PromptForm: React.FC<PromptFormProps> = ({ onGenerate, initialValues }) => {
-  // We select George Washington by default
-  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(PRESET_CHARACTERS[0]);
+const PromptForm: React.FC<PromptFormProps> = ({
+  characters,
+  onGenerate,
+  initialValues,
+  onAddCustomCharacter,
+  onRemoveCustomCharacter,
+}) => {
+  // We select the first character from the active roster (or George Washington if not set yet)
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(
+    characters[0] || PRESET_CHARACTERS[0]
+  );
   const [customImage, setCustomImage] = useState<ImageFile | null>(null);
 
   // Split prompts as requested: words to be spoken & intonation/mood details
-  const [spokenQuote, setSpokenQuote] = useState(PRESET_CHARACTERS[0].defaultQuote);
-  const [intonation, setIntonation] = useState(PRESET_CHARACTERS[0].defaultIntonation);
+  const [spokenQuote, setSpokenQuote] = useState(
+    characters[0]?.defaultQuote || PRESET_CHARACTERS[0].defaultQuote
+  );
+  const [intonation, setIntonation] = useState(
+    characters[0]?.defaultIntonation || PRESET_CHARACTERS[0].defaultIntonation
+  );
+
+  // Synchronize chosen speaker if list edits or deletions occur
+  useEffect(() => {
+    if (selectedCharacter) {
+      const match = characters.find((c) => c.id === selectedCharacter.id);
+      if (!match) {
+        // Current character was removed; roll back to first available
+        const defaultChar = characters[0] || null;
+        setSelectedCharacter(defaultChar);
+        if (defaultChar) {
+          setSpokenQuote(defaultChar.defaultQuote);
+          setIntonation(defaultChar.defaultIntonation);
+        }
+      } else {
+        // Match found (it might have been edited in candidates tab!)
+        // Keep name, title, prompt descriptor perfectly live
+        setSelectedCharacter(match);
+      }
+    } else if (characters.length > 0) {
+      setSelectedCharacter(characters[0]);
+      setSpokenQuote(characters[0].defaultQuote);
+      setIntonation(characters[0].defaultIntonation);
+    }
+  }, [characters, selectedCharacter]);
 
   // Standard advanced VEO settings
   const [model, setModel] = useState<VeoModel>(initialValues?.model ?? VeoModel.VEO_LITE);
@@ -163,13 +202,13 @@ const PromptForm: React.FC<PromptFormProps> = ({ onGenerate, initialValues }) =>
         finalStartFrame = await urlToImageFile(selectedCharacter.imageUrl, `${selectedCharacter.id}.jpg`);
       }
 
-      // Compile beautiful VEO speaker simulation prompt
+      // Compile beautiful VEO speaker simulation prompt with strict static camera limits
       const charName = selectedCharacter ? selectedCharacter.name : 'A historical actor';
       const visualDescriptor = selectedCharacter 
         ? selectedCharacter.visualPrompt 
         : 'A professional lookalike speaker in a high-fidelity studio environment';
 
-      const compiledPrompt = `A high-fidelity cinematic video close up portrait of ${visualDescriptor}. The character is ${charName}, looking straight, speaking directly to the camera, saying the words: "${spokenQuote.replace(/"/g, '\\"')}". The delivery tone and intonation of the reading is: ${intonation.trim() || 'natural, clear speech'}. Their lips and mouth move perfectly synchronized with the spoken quote, with realistic lifelike facial expressions, subtle gaze, and natural head nods. Elegant portrait studio lighting, dramatic backlights, highly detailed, high production values.`;
+      const compiledPrompt = `A high-fidelity cinematic video close up portrait of ${visualDescriptor}. The character is ${charName}, looking straight, speaking directly to the camera, saying the words: "${spokenQuote.replace(/"/g, '\\"')}". The delivery tone and intonation of the reading is: ${intonation.trim() || 'natural, clear speech'}. Their lips and mouth move perfectly synchronized with the spoken quote, with realistic lifelike facial expressions, subtle gaze, and natural head nods. Elegant portrait studio lighting, dramatic backlights, highly detailed, high production values. STRICT CAMERA CONSTRAINT: The camera must remain absolutely static and fixed with zero camera movement, no panning, tilting, panning, zooming, or rotating. The background must remain completely still and identical to the starting frame, with zero scene transitions or background shifts. Only the character present in the provided starting frame image should move their lips and face to speak. No outer camera motions, no scene transitions, and no environment scaling allowed.`;
 
       onGenerate({
         prompt: compiledPrompt,
@@ -190,7 +229,7 @@ const PromptForm: React.FC<PromptFormProps> = ({ onGenerate, initialValues }) =>
       console.warn("Failed to fetch/encode reference frame, falling back to direct video instruction:", err);
       
       // Clean fallback using standard Text to Video
-      const fallbackPrompt = `A high-fidelity cinematic video close up portait of a historical figure named ${selectedCharacter?.name || 'speaker'}. They are speaking directly to the camera, saying the words: "${spokenQuote.replace(/"/g, '\\"')}". The delivery tone and intonation of the reading is: ${intonation.trim() || 'clear voice'}. Perfect lip-sync and lifelike expressions.`;
+      const fallbackPrompt = `A high-fidelity cinematic video close up portait of a historical figure named ${selectedCharacter?.name || 'speaker'}. They are speaking directly to the camera, saying the words: "${spokenQuote.replace(/"/g, '\\"')}". The delivery tone and intonation of the reading is: ${intonation.trim() || 'clear voice'}. Perfect lip-sync and lifelike expressions. STRICT CAMERA CONSTRAINT: The camera must remain absolutely static and fixed with zero camera movement, no panning, tilting, panning, zooming, or rotating. The background must remain completely still and identical to the starting frame, with zero scene transitions or background shifts. Only the character present in the provided starting frame image should move their lips and face to speak. No outer camera motions, no scene transitions, and no environment scaling allowed.`;
 
       onGenerate({
         prompt: fallbackPrompt,
@@ -217,9 +256,12 @@ const PromptForm: React.FC<PromptFormProps> = ({ onGenerate, initialValues }) =>
     <div className="w-full flex flex-col gap-6" id="prompt-form-wrapper">
       {/* 1. Candidate Gallery Selection */}
       <CharacterSelector
+        characters={characters}
         selectedCharacter={selectedCharacter}
         onSelectCharacter={handleSelectCharacter}
         onCustomImageAdded={setCustomImage}
+        onAddCustomCharacter={onAddCustomCharacter}
+        onRemoveCustomCharacter={onRemoveCustomCharacter}
       />
 
       {/* Inputs Form */}
@@ -347,7 +389,7 @@ const PromptForm: React.FC<PromptFormProps> = ({ onGenerate, initialValues }) =>
             ) : (
               <>
                 <ArrowRightIcon className="w-4 h-4" />
-                Animate Candidate Voiceover
+                Render
               </>
             )}
           </button>

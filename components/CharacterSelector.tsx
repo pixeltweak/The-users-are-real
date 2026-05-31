@@ -9,9 +9,12 @@ import { PlusIcon, XMarkIcon, SparklesIcon, FileImageIcon } from './icons';
 import { ImageFile } from '../types';
 
 interface CharacterSelectorProps {
+  characters: Character[];
   selectedCharacter: Character | null;
   onSelectCharacter: (character: Character | null) => void;
   onCustomImageAdded: (imageFile: ImageFile | null) => void;
+  onAddCustomCharacter: (character: Character, imageFile: ImageFile) => void;
+  onRemoveCustomCharacter: (id: string) => void;
 }
 
 const fileToImageFile = (file: File): Promise<ImageFile> => {
@@ -31,12 +34,13 @@ const fileToImageFile = (file: File): Promise<ImageFile> => {
 };
 
 export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
+  characters,
   selectedCharacter,
   onSelectCharacter,
   onCustomImageAdded,
+  onAddCustomCharacter,
+  onRemoveCustomCharacter,
 }) => {
-  // Store both presets and any uploaded custom characters in local state
-  const [characters, setCharacters] = useState<Character[]>(PRESET_CHARACTERS);
   const [isUploadingCustom, setIsUploadingCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customTitle, setCustomTitle] = useState('');
@@ -54,7 +58,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         setIsUploadingCustom(true);
         // Default values to assist fast filling
         if (!customName) setCustomName(file.name.split('.')[0] || 'My Candidate');
-        if (!customTitle) setCustomTitle('Custom Character');
+        if (!customTitle) setCustomTitle('Custom Representative');
         if (!customVisualPrompt) setCustomVisualPrompt('A realistic close-up video of a person speaking directly to the camera, with expressive lips');
       } catch (err) {
         console.error('Failed to read custom character image:', err);
@@ -68,15 +72,15 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
     const newChar: Character = {
       id: `custom_${Date.now()}`,
-      name: customName.trim() || 'Custom Character',
+      name: customName.trim() || 'Custom Representative',
       title: customTitle.trim() || 'Individual Portrait',
       imageUrl: URL.createObjectURL(customImage.file), // Use blob object URL for local display
-      visualPrompt: customVisualPrompt.trim() || 'A person speaking to the camera',
-      defaultQuote: 'Enter your quote here.',
-      defaultIntonation: 'Delivered in a professional, clear voice.',
+      visualPrompt: customVisualPrompt.trim() || 'A person speaking stably to the camera',
+      defaultQuote: 'Write details or quotes here.',
+      defaultIntonation: 'Natural clear speech, looking straight.',
     };
 
-    setCharacters((prev) => [...prev, newChar]);
+    onAddCustomCharacter(newChar, customImage);
     onSelectCharacter(newChar);
     onCustomImageAdded(customImage); // Propagate the actual ImageFile for rendering/VEO startFrame
 
@@ -99,9 +103,9 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   // Helper to remove any custom added character from the deck
   const handleRemoveCustomChar = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setCharacters((prev) => prev.filter((c) => c.id !== id));
+    onRemoveCustomCharacter(id);
     if (selectedCharacter?.id === id) {
-      onSelectCharacter(PRESET_CHARACTERS[0] || null);
+      onSelectCharacter(characters[0] || null);
       onCustomImageAdded(null);
     }
   };
@@ -111,7 +115,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-white">1. Choose Candidate</h3>
-          <p className="text-xs text-gray-400">Select who will voice your quote or upload a photo to render your own voice actor</p>
+          <p className="text-xs text-gray-400">Select who will voice your quote, or use the quick shortcut below to supply a new real-life frame reference</p>
         </div>
       </div>
 
@@ -119,7 +123,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[300px] overflow-y-auto pr-1 pad-scroll">
         {characters.map((char) => {
           const isSelected = selectedCharacter?.id === char.id;
-          const isCustom = char.id.startsWith('custom_');
+          const isCustom = char.id.startsWith('custom_') || char.id.startsWith('candidate_');
           
           return (
             <button
@@ -127,16 +131,15 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
               type="button"
               onClick={() => {
                 onSelectCharacter(char);
-                // If it is custom, the custom ImageFile was already provided,
-                // but if we toggle back to normal preset we should reset customImage in App/PromptForm.
+                // If it is custom, use the local ImageFile reference tracking
                 if (!isCustom) {
                   onCustomImageAdded(null);
                 }
               }}
-              className={`group relative flex flex-col items-center bg-[#212123] p-2.5 rounded-xl border transition-all text-center focus:outline-none ${
+              className={`group relative flex flex-col items-center bg-[#212123]/20 p-2.5 rounded-xl border transition-all text-center focus:outline-none ${
                 isSelected
                   ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-950/20'
-                  : 'border-transparent hover:border-gray-600 hover:bg-[#2a2a2d]'
+                  : 'border-transparent hover:border-gray-650 hover:bg-[#2a2a2d]/40'
               }`}
             >
               <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-2 rounded-full overflow-hidden border border-gray-700 bg-gray-800">
@@ -169,7 +172,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
                 <button
                   type="button"
                   onClick={(e) => handleRemoveCustomChar(e, char.id)}
-                  className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-red-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-red-650 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label="Remove Custom Candidate"
                 >
                   <XMarkIcon className="w-3" />
@@ -183,13 +186,13 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         <button
           type="button"
           onClick={() => uploadInputRef.current?.click()}
-          className="flex flex-col items-center justify-center bg-[#18181a] p-3 rounded-xl border-2 border-dashed border-gray-700 hover:border-indigo-500 hover:bg-indigo-950/10 text-gray-400 hover:text-white transition-colors"
+          className="flex flex-col items-center justify-center bg-[#18181a]/40 p-3 rounded-xl border border-dashed border-gray-800 hover:border-indigo-500 hover:bg-indigo-950/10 text-gray-400 hover:text-white transition-colors"
         >
-          <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mb-2">
-            <PlusIcon className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-full bg-gray-850 flex items-center justify-center mb-2">
+            <PlusIcon className="w-4 h-4" />
           </div>
-          <span className="text-xs font-semibold">Upload Photo</span>
-          <span className="text-[9px] text-gray-500 mt-1 line-clamp-2">PNG / JPG face portrait</span>
+          <span className="text-xs font-semibold">Upload Image</span>
+          <span className="text-[9px] text-gray-500 mt-1 line-clamp-2">Direct portrait quick-insert</span>
           <input
             type="file"
             ref={uploadInputRef}
@@ -202,15 +205,15 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
       {/* Upload Custom Modal Form */}
       {isUploadingCustom && customImage && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <form
             onSubmit={handleSaveCustom}
-            className="w-full max-w-md bg-[#1f1f21] border border-gray-700 rounded-2xl p-6 shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in duration-250"
+            className="w-full max-w-md bg-[#141416] border border-gray-800 rounded-2xl p-6 shadow-2xl flex flex-col gap-4 animate-in fade-in zoom-in duration-200"
           >
-            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-              <h4 className="text-base font-semibold text-white flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5 text-indigo-400" />
-                Setup Custom Candidate
+            <div className="flex items-center justify-between border-b border-gray-900 pb-3">
+              <h4 className="text-sm font-bold text-white flex items-center gap-1.5 animate-pulse">
+                <SparklesIcon className="w-4 h-4 text-indigo-400" />
+                Quick-Enroll Custom Candidate
               </h4>
               <button
                 type="button"
@@ -222,8 +225,8 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
             </div>
 
             {/* Image Preview & Details */}
-            <div className="flex gap-4 items-start">
-              <div className="w-24 h-24 rounded-xl border border-gray-700 overflow-hidden bg-gray-800 shrink-0 shadow-lg">
+            <div className="flex gap-4 items-start bg-[#0d0d0f] p-4 rounded-xl border border-gray-900">
+              <div className="w-20 h-20 rounded-xl border border-gray-800 overflow-hidden bg-gray-950 shrink-0 shadow-lg">
                 <img
                   src={URL.createObjectURL(customImage.file)}
                   alt="custom upload raw preview"
@@ -233,7 +236,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
               
               <div className="flex-grow flex flex-col gap-3">
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block mb-1">
+                  <label className="text-[9px] uppercase font-bold text-gray-500 tracking-wider block mb-1">
                     Candidate Name
                   </label>
                   <input
@@ -242,12 +245,12 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
                     placeholder="e.g. My Boss, Queen Cleopatra Lookalike"
-                    className="w-full bg-[#121214] border border-gray-700 rounded-lg px-3 py-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full bg-[#161618] border border-gray-850 rounded px-2.5 py-1 text-xs text-white focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block mb-1">
+                  <label className="text-[9px] uppercase font-bold text-gray-500 tracking-wider block mb-1">
                     Job Title / Role
                   </label>
                   <input
@@ -256,7 +259,7 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
                     value={customTitle}
                     onChange={(e) => setCustomTitle(e.target.value)}
                     placeholder="e.g. CEO, Senior Speaker"
-                    className="w-full bg-[#121214] border border-gray-700 rounded-lg px-3 py-1.5 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full bg-[#161618] border border-gray-850 rounded px-2.5 py-1 text-xs text-white focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -264,34 +267,33 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
 
             {/* Advanced Prompt description of this user photo */}
             <div>
-              <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block mb-1 flex justify-between">
+              <label className="text-[9px] uppercase font-bold text-gray-500 tracking-wider block mb-1 flex justify-between">
                 <span>Visual Prompt Descriptor</span>
-                <span className="text-indigo-400 hover:underline cursor-help" title="To help the VEO AI capture the exact details of your photo">Help</span>
               </label>
               <textarea
                 value={customVisualPrompt}
                 onChange={(e) => setCustomVisualPrompt(e.target.value)}
                 placeholder="A detailed cinematic close-up of a person with dark hair, looking stately, wearing casual clothing, speaking and moving realistically."
                 rows={3}
-                className="w-full bg-[#121214] border border-gray-700 rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none resize-none"
+                className="w-full bg-[#161618] border border-gray-800 rounded px-3 py-2 text-xs text-gray-300 focus:border-indigo-500 focus:outline-none resize-none"
               />
-              <p className="text-[10px] text-gray-500 mt-1 italic">
+              <p className="text-[9px] text-gray-500 mt-1 italic">
                 Describe the eyes, hair, clothes, and scene of the uploaded picture so VEO matches the motion perfectly.
               </p>
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 border-t border-gray-800 pt-4 mt-2">
+            <div className="flex justify-end gap-2.5 border-t border-gray-900 pt-4 mt-2">
               <button
                 type="button"
                 onClick={handleCancelCustom}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-semibold rounded-lg transition-colors"
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors shadow-lg shadow-indigo-900/20"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded shadow-lg shadow-indigo-900/40"
               >
                 Save Candidate
               </button>
