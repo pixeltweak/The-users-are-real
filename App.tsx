@@ -264,7 +264,7 @@ const App: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <h1 className="text-base font-bold tracking-tight text-white group-hover:text-indigo-450 transition-colors">
-              The User Is Real
+              The Users Are Real
             </h1>
             <span className="text-[10px] text-gray-500 uppercase tracking-widest font-mono">
               Historical voiceover synthesis

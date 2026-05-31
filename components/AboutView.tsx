@@ -14,7 +14,7 @@ export const AboutView: React.FC = () => {
       <div className="text-center max-w-2xl mx-auto flex flex-col gap-3 py-4">
         <span className="text-indigo-400 font-bold uppercase tracking-widest text-xs">Behind The Lens of History</span>
         <h2 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-          The User Is Real.
+          The Users Are Real.
         </h2>
         <p className="text-gray-400 text-base leading-relaxed mt-2">
           An advanced speech-to-video remastering sandbox. Resynthesize lost historic monologues and test delivery intonation by breathing movement and speech synchronization into high-fidelity candidate portraits using the state-of-the-art Google VEO 3.1 architecture.
