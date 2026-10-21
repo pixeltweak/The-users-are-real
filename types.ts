@@ -3,7 +3,10 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import {Video} from '@google/genai';
+export interface Video {
+  uri?: string;
+  mimeType?: string;
+}
 
 export enum AppState {
   IDLE,

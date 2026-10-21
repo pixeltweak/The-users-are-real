@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "UserVideo": {
+      "title": "UserVideo",
+      "description": "Represents a generated Veo user research quote video linked to a specific user account.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the video record"
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this video"
+        },
+        "quote": {
+          "type": "string",
+          "description": "The synthesized user research quote text"
+        },
+        "candidateName": {
+          "type": "string",
+          "description": "Name of the research participant candidate"
+        },
+        "generatedDate": {
+          "type": "string",
+          "description": "Formatted date string when the video was created"
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "description": "Reference URL or portrait path for the video thumbnail"
+        },
+        "durationSec": {
+          "type": "number",
+          "description": "Duration in seconds of the video"
+        },
+        "videoUrl": {
+          "type": "string",
+          "description": "Playback URL or blob reference for the video"
+        },
+        "promptUsed": {
+          "type": "string",
+          "description": "The exact Veo generation prompt used"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Unix timestamp in milliseconds when the record was created"
+        }
+      },
+      "required": ["id", "userId", "quote", "candidateName", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/videos/{videoId}": {
+      "schema": {
+        "$ref": "#/entities/UserVideo"
+      },
+      "description": "Subcollection of videos generated and owned by the authenticated user."
+    }
+  }
+}

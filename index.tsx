@@ -2,6 +2,30 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
+// Ignore WebSocket / HMR disconnection errors per runtime environment constraints
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    if (
+      event.reason &&
+      (event.reason.message?.includes('WebSocket') ||
+        event.reason.message?.includes('vite:ws') ||
+        String(event.reason).includes('WebSocket closed'))
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  });
+  window.addEventListener('error', (event) => {
+    if (
+      event.message?.includes('WebSocket') ||
+      event.filename?.includes('@vite/client')
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  });
+}
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

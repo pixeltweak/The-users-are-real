@@ -2,28 +2,111 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <script>
+      // Gracefully handle iframe WebSocket / HMR disconnection per environment constraints
+      (function() {
+        const OriginalWebSocket = window.WebSocket;
+        if (OriginalWebSocket) {
+          window.WebSocket = function(url, protocols) {
+            try {
+              const ws = new OriginalWebSocket(url, protocols);
+              ws.addEventListener('error', function(e) {
+                e.stopImmediatePropagation?.();
+                e.stopPropagation?.();
+              });
+              return ws;
+            } catch (err) {
+              const stub = new EventTarget();
+              return Object.assign(stub, {
+                send: function() {},
+                close: function() {},
+                readyState: 3,
+                addEventListener: stub.addEventListener.bind(stub),
+                removeEventListener: stub.removeEventListener.bind(stub),
+                dispatchEvent: stub.dispatchEvent.bind(stub),
+              });
+            }
+          };
+          window.WebSocket.prototype = OriginalWebSocket.prototype;
+          window.WebSocket.CONNECTING = 0;
+          window.WebSocket.OPEN = 1;
+          window.WebSocket.CLOSING = 2;
+          window.WebSocket.CLOSED = 3;
+        }
+
+        window.addEventListener('error', function(event) {
+          const msg = String(event.message || '');
+          const file = String(event.filename || '');
+          const stack = String(event.error?.stack || '');
+          if (
+            file.includes('@vite/client') ||
+            msg.includes('WebSocket') ||
+            msg.includes('ws') ||
+            stack.includes('@vite/client')
+          ) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return false;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          const reason = String(event.reason?.message || event.reason || '');
+          if (
+            reason.includes('WebSocket') ||
+            reason.includes('@vite/client') ||
+            reason.includes('vite:ws')
+          ) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+      })();
+    </script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Users Are Real</title>
+    <meta name="description" content="Choose from predefined interview candidates to read interview quotes and make your research come alive" />
+    <meta property="og:title" content="The Users Are Real" />
+    <meta property="og:description" content="Choose from predefined interview candidates to read interview quotes and make your research come alive" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500;1,6..72,600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.0/",
-    "react/": "https://esm.sh/react@^19.2.0/",
-    "react": "https://esm.sh/react@^19.2.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.22.0",
-    "path": "https://esm.sh/path@^0.12.7",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.0.4",
-    "vite": "https://esm.sh/vite@^7.1.10",
-    "lucide-react": "https://esm.sh/lucide-react@^0.545.0",
-    "gifshot": "https://esm.sh/gifshot@0.4.5"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
-</head>
-  <body class="bg-black text-white">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Geist"', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+              mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
+              serif: ['"Newsreader"', 'Georgia', 'serif'],
+            },
+            colors: {
+              brand: {
+                bg: 'var(--bg)',
+                surface: 'var(--surface)',
+                card: 'var(--surface-card)',
+                line: 'var(--line)',
+                linesubtle: 'var(--line-subtle)',
+                fg: 'var(--fg)',
+                mute: 'var(--fg-mute)',
+                faint: 'var(--fg-faint)',
+                ghost: 'var(--fg-ghost)',
+                accent: 'var(--accent)',
+                c1: '#3c4245',
+                c2: '#5f6769',
+                c3: '#719192',
+                c4: '#dfcdc3',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="/index.css">
+  </head>
+  <body class="bg-brand-bg text-brand-fg antialiased min-h-screen">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
