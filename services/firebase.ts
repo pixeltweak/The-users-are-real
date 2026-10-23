@@ -180,7 +180,7 @@ export function subscribeToUserVideos(
           quote: data.quote || '',
           candidateName: data.candidateName || 'Hermione',
           generatedDate: data.generatedDate || '',
-          thumbnailUrl: data.thumbnailUrl || '/assets/aistudio/Hermione_c64626e7.png',
+          thumbnailUrl: data.thumbnailUrl || '/candidates/hermione.png',
           durationSec: data.durationSec || 6.0,
           videoUrl: data.videoUrl || '',
           promptUsed: data.promptUsed || '',

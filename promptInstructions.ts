@@ -12,7 +12,7 @@ export interface VeoPromptOptions {
   setting?: string;
   shotType?: string;
   cameraMotion?: string;
-  mode?: '8s' | 'extended';
+  mode?: '8s' | 'auto' | 'extended';
   isContinuation?: boolean;
   segmentIndex?: number;
   totalSegments?: number;
@@ -44,7 +44,7 @@ export function buildVeoPrompt(options: VeoPromptOptions): string {
     setting = 'an authentic, softly-lit modern office meeting room with shallow depth of field',
     shotType = 'Medium close-up portrait, eye-level framing',
     cameraMotion = 'Locked-off static camera with limited movement, steady cinematic composure',
-    mode = '8s',
+    mode = 'auto',
     isContinuation = false,
     segmentIndex = 0,
     totalSegments = 1,
@@ -59,6 +59,10 @@ export function buildVeoPrompt(options: VeoPromptOptions): string {
     // Mode '8s': Add natural, thoughtful silence to comfortably pad the 8s clip without rushing
     performanceDirective =
       `${candidateName} maintains steady, composed eye contact. She articulates the statement cleanly in an authentic British accent at an unhurried conversational cadence, then naturally pauses in calm, thoughtful silence with subtle natural breathing and attentive composure for the remainder of the 8-second clip. Do not loop or rush the delivery.`;
+  } else if (mode === 'auto') {
+    // Mode 'auto': Clip timed to the nearest second
+    performanceDirective =
+      `${candidateName} maintains steady, composed eye contact. She articulates the statement cleanly in an authentic British accent at an authentic conversational cadence, concluding naturally with attentive composure.`;
   } else if (isContinuation) {
     // Mode 'extended' (Clip 2+): Seamless continuation from previous video segment
     performanceDirective =
@@ -192,7 +196,7 @@ export function splitQuoteIntoSegments(quote: string): string[] {
  */
 export function estimateSpeechDuration(
   quote: string,
-  mode: '8s' | 'extended' = '8s'
+  mode: '8s' | 'auto' | 'extended' = '8s'
 ): {
   wordCount: number;
   estimatedSeconds: number;
@@ -200,6 +204,7 @@ export function estimateSpeechDuration(
   recommendation: string;
   segments: string[];
   totalExtendedSeconds: number;
+  autoSeconds: number;
 } {
   const words = quote.trim().split(/\s+/).filter(Boolean);
   const wordCount = words.length;
@@ -207,6 +212,7 @@ export function estimateSpeechDuration(
   const estimatedSeconds = Math.round((wordCount / 2.3) * 10) / 10;
   const segments = splitQuoteIntoSegments(quote);
   const totalExtendedSeconds = Math.max(segments.length * 8, 8);
+  const autoSeconds = Math.max(2, Math.min(8, Math.round(estimatedSeconds || 5)));
 
   if (wordCount === 0) {
     return {
@@ -215,9 +221,26 @@ export function estimateSpeechDuration(
       status: 'optimal',
       recommendation: mode === '8s'
         ? 'Enter a research quote (up to 14 words). Silence will pad the rest of the 8s.'
+        : mode === 'auto'
+        ? 'Enter a research quote. Duration will automatically round to the nearest second.'
         : 'Enter a research statement. Long quotes will be automatically split into chained clips.',
       segments: [],
       totalExtendedSeconds: 8,
+      autoSeconds: 5,
+    };
+  }
+
+  if (mode === 'auto') {
+    return {
+      wordCount,
+      estimatedSeconds,
+      status: estimatedSeconds > 8 ? 'warning' : 'optimal',
+      recommendation: estimatedSeconds > 8
+        ? `Speech duration is ~${estimatedSeconds}s (exceeds single clip max of 8s). Rounded to 8s max. Consider "Extended" mode for longer quotes.`
+        : `Auto-timed clip duration: ~${autoSeconds}s (rounded to nearest second based on ~${estimatedSeconds}s spoken pace).`,
+      segments: [quote],
+      totalExtendedSeconds: 8,
+      autoSeconds,
     };
   }
 
@@ -229,6 +252,7 @@ export function estimateSpeechDuration(
       recommendation: `Split into ${segments.length} chained clip${segments.length > 1 ? 's' : ''} (~${totalExtendedSeconds}s total interview). Zero jump-cuts between clips.`,
       segments,
       totalExtendedSeconds,
+      autoSeconds,
     };
   }
 
@@ -242,6 +266,7 @@ export function estimateSpeechDuration(
       recommendation: `Spoken speech is ~${estimatedSeconds}s. Veo will add ~${silenceSeconds}s of calm, thoughtful silence with attentive eye contact to complete the 8s clip.`,
       segments: [quote],
       totalExtendedSeconds: 8,
+      autoSeconds,
     };
   }
 
@@ -253,6 +278,7 @@ export function estimateSpeechDuration(
       recommendation: `Quote is ~${estimatedSeconds}s. It fills nearly all 8s with minimal silence. Switch to "Extended" if you want room to breathe.`,
       segments: [quote],
       totalExtendedSeconds: 8,
+      autoSeconds,
     };
   }
 
@@ -263,6 +289,7 @@ export function estimateSpeechDuration(
     recommendation: `Quote is ~${estimatedSeconds}s and will be cropped at 8s! Switch to "Extended" to generate a continuous multi-clip interview.`,
     segments,
     totalExtendedSeconds,
+    autoSeconds,
   };
 }
 

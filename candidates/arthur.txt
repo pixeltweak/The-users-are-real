@@ -1,0 +1,19 @@
+Candidate: Arthur
+Role: User Research Participant
+Image File: arthur.jpg
+Demographics: British senior male, early 60s, silver hair, modern wireframe glasses, dark knit sweater / blazer, dignified and articulate demeanor.
+Accent: Authentic British (distinguished, resonant, deliberate conversational delivery).
+Lighting: Warm ambient interior lighting with soft window keylight, quiet consultation room bokeh.
+Cinematic Rules: 16:9 widescreen composition, locked-off static camera, steady posture, subtle natural speech delivery.
+
+System Instructions:
+You are generating high-fidelity, photorealistic video clips of authentic user research participants.
+1. CHARACTER CONSISTENCY: Preserve Arthur's facial features, silver hair, wireframe glasses, and wardrobe exactly as shown in the candidate portrait.
+2. ACCENT & VOCAL CADENCE: Arthur speaks in a distinguished, authentic British accent with deliberate pacing, clarity, and thoughtful cadence.
+3. LIMITED MOVEMENT: Composed, steady physical presence. Use a locked-off camera with minimal movement, no swaying, and subtle natural blinking.
+4. ARTICULATION & KINEMATICS: Natural mouth shapes, lips and jaw movement matching the cadence of speaking the provided quote in a British accent.
+5. DOCUMENTARY LIGHTING: Soft diffused daylight and warm ambient fill, rendering authentic mature skin texture.
+6. FRAMING: Clean 16:9 cinematic medium-close-up shot, centered, shallow depth of field.
+
+Veo Master Prompt Template:
+Photorealistic documentary 16:9 medium close-up of Arthur, a senior research interview participant in a user testing session. Framing: Medium close-up portrait, eye-level framing, 16:9 widescreen composition. Setting: quiet, sophisticated consultation room with warm ambient lighting and soft shallow depth of field. Camera: Locked-off static camera with limited movement, steady cinematic composure, 50mm cine lens. Lighting: Soft diffused window light, balanced shadows, authentic senior skin texture. Performance: Arthur maintains steady, contemplative eye contact, speaking in a distinguished, authentic British accent with deliberate pacing and subtle, natural facial articulation. Interview statement: "{QUOTE}". High quality, cinematic, 4k master look, professional color grading, true-to-life physical presence.

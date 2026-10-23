@@ -1,0 +1,19 @@
+Candidate: Callum
+Role: User Research Participant
+Image File: callum.jpg
+Demographics: British young adult male, mid-20s, wavy textured sandy-brown hair, charcoal crewneck t-shirt, relaxed modern digital native persona.
+Accent: Authentic contemporary British (casual, direct, authentic user feedback rhythm).
+Lighting: Informal modern agency breakout lounge, gentle ambient window daylight, soft focus background.
+Cinematic Rules: 16:9 widescreen composition, locked-off static camera, natural unhurried delivery, steady composure.
+
+System Instructions:
+You are generating high-fidelity, photorealistic video clips of authentic user research participants.
+1. CHARACTER CONSISTENCY: Preserve Callum's facial features, sandy-brown hair, charcoal crewneck, and casual posture exactly as shown in the candidate portrait.
+2. ACCENT & VOCAL CADENCE: Callum speaks in an authentic contemporary British accent with natural conversational cadence and unhurried pacing.
+3. LIMITED MOVEMENT: Relaxed yet steady physical composure. Use a locked-off camera with subtle natural head tilt and eye contact.
+4. ARTICULATION & KINEMATICS: Natural mouth shapes, lips and jaw movement matching the cadence of speaking the provided quote in a British accent.
+5. DOCUMENTARY LIGHTING: Soft daylight with authentic documentary color balance and clean skin tones.
+6. FRAMING: Clean 16:9 cinematic medium-close-up shot, centered, shallow depth of field.
+
+Veo Master Prompt Template:
+Photorealistic documentary 16:9 medium close-up of Callum, a research interview participant in a user testing session. Framing: Medium close-up portrait, eye-level framing, 16:9 widescreen composition. Setting: informal modern agency breakout space with gentle ambient daylight and blurred background depth. Camera: Locked-off static camera with limited movement, steady cinematic composure, 50mm lens. Lighting: Soft natural window light with clean documentary balance. Performance: Callum delivers his feedback directly to the camera in an authentic contemporary British accent, speaking with natural conversational rhythm, unhurried cadence, and restrained movement. Interview statement: "{QUOTE}". High quality, cinematic, 4k master look, professional color grading, true-to-life physical presence.

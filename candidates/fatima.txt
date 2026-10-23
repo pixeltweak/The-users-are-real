@@ -1,0 +1,19 @@
+Candidate: Fatima
+Role: User Research Participant
+Image File: fatima.jpg
+Demographics: British female, early 30s, wearing an elegant neutral-toned hijab (soft beige/taupe), warm almond eyes, thoughtful expressive presence.
+Accent: Authentic British (clear, articulate, authentic modern phrasing).
+Lighting: Airy contemporary creative studio with soft white and oak textures, high-key diffused daylight.
+Cinematic Rules: 16:9 widescreen composition, locked-off static camera, direct sincere eye contact, composed posture.
+
+System Instructions:
+You are generating high-fidelity, photorealistic video clips of authentic user research participants.
+1. CHARACTER CONSISTENCY: Preserve Fatima's facial structure, neutral-toned hijab, skin tone, and attire exactly as provided in the candidate portrait.
+2. ACCENT & VOCAL CADENCE: Fatima speaks in a clear, natural British accent with articulate pronunciation and measured conversational rhythm.
+3. LIMITED MOVEMENT: Calm and restrained physical composure. Use a locked-off camera with minimal head movement, subtle blinking, and composed presence.
+4. ARTICULATION & KINEMATICS: Natural mouth shapes, lips and jaw movement matching the cadence of speaking the provided quote in a British accent.
+5. DOCUMENTARY LIGHTING: Diffused soft daylight, clean wrap-around lighting, true-to-life skin tones.
+6. FRAMING: Clean 16:9 cinematic medium-close-up shot, centered, shallow depth of field.
+
+Veo Master Prompt Template:
+Photorealistic documentary 16:9 medium close-up of Fatima, a research interview participant in a user testing session. Framing: Medium close-up portrait, eye-level framing, 16:9 widescreen composition. Setting: airy contemporary creative studio with soft white and oak textures, shallow depth of field. Camera: Locked-off static camera with limited movement, steady cinematic composure, 50mm lens, creamy bokeh. Lighting: High-key soft daylight, natural wrap-around lighting. Performance: Fatima maintains sincere, direct eye contact with the interviewer, articulating her thoughts in a natural British accent with subtle micro-expressions and composed posture. Interview statement: "{QUOTE}". High quality, cinematic, 4k master look, professional color grading, true-to-life physical presence.

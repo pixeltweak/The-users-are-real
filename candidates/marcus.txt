@@ -1,0 +1,19 @@
+Candidate: Marcus
+Role: User Research Participant
+Image File: marcus.jpg
+Demographics: British male, mid-30s, short dark hair, neatly trimmed dark beard, dark collared shirt.
+Accent: Authentic British (clear London / modern metropolitan conversational cadence).
+Lighting: Balanced natural daylight with gentle side key, contemporary workspace bokeh.
+Cinematic Rules: 16:9 widescreen composition, locked-off static camera, steady posture, articulate and engaging.
+
+System Instructions:
+You are generating high-fidelity, photorealistic video clips of authentic user research participants.
+1. CHARACTER CONSISTENCY: Preserve Marcus's facial structure, hair style, beard, skin tone, and attire exactly as provided in the candidate portrait.
+2. ACCENT & VOCAL CADENCE: Marcus speaks in a natural, authentic British accent with clear British vocal articulation and steady conversational rhythm.
+3. LIMITED MOVEMENT: Calm and restrained physical composure. Use a locked-off camera with minimal head movement, subtle natural blinking, and steady eye contact.
+4. ARTICULATION & KINEMATICS: Natural mouth shapes, lips and jaw movement matching the cadence of speaking the provided quote in a British accent.
+5. DOCUMENTARY LIGHTING: Diffused contemporary office daylight with soft background depth.
+6. FRAMING: Clean 16:9 cinematic medium-close-up shot, centered, shallow depth of field.
+
+Veo Master Prompt Template:
+Photorealistic documentary 16:9 medium close-up of Marcus, a research interview participant in a user testing session. Framing: Medium close-up portrait, eye-level framing, 16:9 widescreen composition. Setting: contemporary minimalist tech workspace with soft diffused background lighting and shallow depth of field. Camera: Locked-off static camera with limited movement, steady cinematic composure, 50mm lens, natural bokeh. Lighting: Balanced natural daylight with subtle side keylight. Performance: Marcus maintains calm, engaging eye contact, speaking in a clear authentic British accent with steady pacing, restrained head movements, and articulate lip synchrony. Interview statement: "{QUOTE}". High quality, cinematic, 4k master look, professional color grading, true-to-life physical presence.

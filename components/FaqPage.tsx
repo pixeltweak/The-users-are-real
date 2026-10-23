@@ -26,6 +26,7 @@ interface FaqItem {
 export const FaqPage: React.FC<FaqPageProps> = ({ onNavigateToStudio }) => {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({
     'item-8s': true,
+    'item-scene-extension': true,
     'item-extended': true,
     'item-duration': true,
   });
@@ -35,6 +36,21 @@ export const FaqPage: React.FC<FaqPageProps> = ({ onNavigateToStudio }) => {
   };
 
   const faqItems: FaqItem[] = [
+    {
+      id: 'item-scene-extension',
+      category: 'Veo Specifications',
+      question: 'Scene Extension (Chaining)',
+      answer: (
+        <div className="space-y-2">
+          <p className="font-mono text-xs text-[#719192] uppercase font-semibold">
+            (Supported by Standard &amp; Fast)
+          </p>
+          <p className="text-[#dfcdc3]/90 text-sm leading-relaxed">
+            Veo uses an image-to-video workflow, taking the final frame of your first 8-second clip as a reference point to seamlessly &ldquo;extend&rdquo; the next scene by 7 seconds. You can do this up to 20 times (~148 seconds max).
+          </p>
+        </div>
+      ),
+    },
     {
       id: 'item-8s',
       category: 'Duration & Pacing',

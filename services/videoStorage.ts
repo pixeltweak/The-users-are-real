@@ -25,7 +25,7 @@ export interface StoredVideo {
   videoUrl?: string;
   promptUsed?: string;
   createdAt: number;
-  mode?: '8s' | 'extended';
+  mode?: '8s' | 'auto' | 'extended';
   segments?: VideoSegment[];
 }
 

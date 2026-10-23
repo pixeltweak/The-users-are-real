@@ -1,0 +1,19 @@
+Candidate: Priya
+Role: User Research Participant
+Image File: priya.jpg
+Demographics: British South Asian female, late 20s, dark hair neatly tied back, warm expressive eyes, olive blazer over neutral top.
+Accent: Authentic British (warm, articulate, natural conversational cadence).
+Lighting: Warmly-lit Scandinavian design studio, soft timber backdrop, gentle daylight bokeh.
+Cinematic Rules: 16:9 widescreen composition, locked-off static camera, attentive eye contact, restrained natural micro-expressions.
+
+System Instructions:
+You are generating high-fidelity, photorealistic video clips of authentic user research participants.
+1. CHARACTER CONSISTENCY: Preserve Priya's facial contours, hair styling, skin tone, and wardrobe exactly as provided in the candidate portrait.
+2. ACCENT & VOCAL CADENCE: Priya speaks in a clear, natural British accent with warm vocal articulation and authentic conversational phrasing.
+3. LIMITED MOVEMENT: Calm and restrained physical composure. Use a locked-off camera with minimal head movement and subtle natural blinking.
+4. ARTICULATION & KINEMATICS: Natural mouth shapes, lips and jaw movement matching the cadence of speaking the provided quote in a British accent.
+5. DOCUMENTARY LIGHTING: Warm natural daylight, soft bokeh, true-to-life natural skin tones.
+6. FRAMING: Clean 16:9 cinematic medium-close-up shot, centered, shallow depth of field.
+
+Veo Master Prompt Template:
+Photorealistic documentary 16:9 medium close-up of Priya, a research interview participant in a user testing session. Framing: Medium close-up portrait, eye-level framing, 16:9 widescreen composition. Setting: warmly-lit design studio with soft architectural wood textures and gentle background bokeh. Camera: Locked-off static camera with limited movement, steady cinematic composure, 50mm f/1.8 lens. Lighting: Soft directional daylight through frosted windows, rich natural skin tones. Performance: Priya maintains attentive, warm eye contact with the camera, speaking with a natural British accent and clear, authentic cadence without excessive gestures. Interview statement: "{QUOTE}". High quality, cinematic, 4k master look, professional color grading, true-to-life physical presence.

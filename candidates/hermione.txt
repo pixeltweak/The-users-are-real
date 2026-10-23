@@ -1,0 +1,19 @@
+Candidate: Hermione
+Role: Master Candidate & User Research Participant
+Image File: hermione.png (and Hermione_c64626e7.png)
+Demographics: British female, early 30s, natural brown wavy hair, dark olive/navy crewneck top.
+Accent: Authentic British (RP / South East England natural conversational cadence).
+Lighting: Soft diffused daylight, neutral modern meeting room, shallow depth of field.
+Cinematic Rules: 16:9 widescreen composition, locked-off static camera, restrained natural facial micro-expressions, composed eye contact.
+
+System Instructions:
+You are generating high-fidelity, photorealistic video clips of authentic user research participants.
+1. CHARACTER CONSISTENCY: Preserve Hermione's facial structure, hair color, skin tone, and attire exactly as provided in the master candidate portrait.
+2. ACCENT & VOCAL CADENCE: Hermione speaks in a natural, authentic British accent with clear British vocal articulation and unhurried natural phrasing.
+3. LIMITED MOVEMENT: Calm and restrained physical composure. Use a locked-off camera with minimal head movement, subtle blinking, and restrained natural facial expressions without swaying or excessive gestures.
+4. ARTICULATION & KINEMATICS: Natural mouth shapes, lips and jaw movement matching the cadence of speaking the provided quote in a British accent.
+5. DOCUMENTARY LIGHTING: Soft, diffused office or natural daylight setting, avoiding harsh shadows or artificial studio saturation.
+6. FRAMING: Clean 16:9 cinematic medium-close-up shot, participant centered, shallow depth of field with gently blurred authentic background.
+
+Veo Master Prompt Template:
+Photorealistic documentary 16:9 medium close-up of Hermione, a research interview participant in a user testing session. Framing: Medium close-up portrait, eye-level framing, 16:9 widescreen composition. Setting: an authentic, softly-lit modern office meeting room with shallow depth of field. Camera: Locked-off static camera with limited movement, steady cinematic composure, 50mm cinematic lens, beautiful bokeh, static framing. Lighting: Soft diffused directional daylight, natural skin tones. Performance: Hermione maintains steady, composed eye contact with the camera. She articulates the statement cleanly in an authentic British accent at an unhurried conversational cadence, concluding naturally with attentive composure. Interview statement: "{QUOTE}". High quality, cinematic, 4k master look, professional color grading, true-to-life physical presence.

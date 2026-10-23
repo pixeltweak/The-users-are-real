@@ -1,30 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Download,
-  Trash2,
   Loader2,
-  Play,
-  Upload,
-  Image as ImageIcon,
-  Check,
-  RotateCcw,
   Film,
   X,
   AlertCircle,
+  AlertTriangle,
+  Check,
   Sliders,
   ChevronDown,
   ChevronUp,
-  Cloud,
-  User as UserIcon,
   Clock,
-  AlertTriangle,
-  Sparkles,
   Layers,
-  Menu,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { VeoVideoPlayer } from './components/VeoVideoPlayer';
 import { HomePage } from './components/HomePage';
 import { FaqPage } from './components/FaqPage';
+import { Header } from './components/Header';
+import {
+  CandidateProfile,
+  Candidate,
+  DEFAULT_CANDIDATES,
+} from './components/CandidateProfile';
+import { RenderArchive } from './components/RenderArchive';
+import { Footer } from './components/Footer';
 import {
   generateVeoVideo,
   generateVeoExtendedSequence,
@@ -56,7 +55,7 @@ import { AuthDialog } from './components/AuthDialog';
 export type PastQuoteItem = StoredVideo;
 
 // Master candidate portrait representation (User uploaded Hermione asset)
-const DEFAULT_CANDIDATE_IMAGE = '/assets/aistudio/Hermione_c64626e7.png';
+const DEFAULT_CANDIDATE_IMAGE = '/candidates/hermione.png';
 
 // Blank initial archive list per request
 const INITIAL_MOCK_QUOTES: PastQuoteItem[] = [];
@@ -67,37 +66,22 @@ export const App: React.FC = () => {
   // Navigation active view ('home', 'studio', or 'faq')
   const [activeView, setActiveView] = useState<'home' | 'studio' | 'faq'>('home');
 
-  // Candidate Image state (defaulting to uploaded Hermione asset)
-  const [candidateImage, setCandidateImage] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_IMAGE_KEY);
-      if (saved && !saved.includes('unsplash.com')) {
-        return saved;
-      }
-      return DEFAULT_CANDIDATE_IMAGE;
-    } catch {
-      return DEFAULT_CANDIDATE_IMAGE;
-    }
-  });
+  // Candidate Selector list (6 diverse candidates + custom uploads)
+  const [candidates, setCandidates] = useState<Candidate[]>(DEFAULT_CANDIDATES);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string>('hermione');
 
-  const candidateName = 'Hermione';
-  const [imageFileName, setImageFileName] = useState<string>('Hermione_c64626e7.png');
-  const [isCustomImage, setIsCustomImage] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_IMAGE_KEY);
-      return !!saved && !saved.includes('unsplash.com') && saved !== DEFAULT_CANDIDATE_IMAGE;
-    } catch {
-      return false;
-    }
-  });
+  // Active candidate name & image sent as source material to Veo
+  const [candidateName, setCandidateName] = useState<string>('Hermione');
+  const [candidateImage, setCandidateImage] = useState<string>(DEFAULT_CANDIDATE_IMAGE);
+  const [imageFileName, setImageFileName] = useState<string>('hermione.png');
+  const [isCustomImage, setIsCustomImage] = useState<boolean>(false);
 
   // App core state (Google Veo)
   const [quoteInput, setQuoteInput] = useState<string>('');
-  const [clipDurationOption, setClipDurationOption] = useState<'8s' | 'extended'>('8s');
+  const [clipDurationOption, setClipDurationOption] = useState<'8s' | 'auto' | 'extended'>('auto');
   const [customPrompt, setCustomPrompt] = useState<string>('');
   const [isPromptManuallyEdited, setIsPromptManuallyEdited] = useState<boolean>(false);
   const [showAdvancedPrompt, setShowAdvancedPrompt] = useState<boolean>(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Derived speech estimation & segmentation (memoized for efficiency)
   const speechEstimate = React.useMemo(
@@ -148,17 +132,6 @@ export const App: React.FC = () => {
   const [imageLoadError, setImageLoadError] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Auto-close mobile drawer if window expands to desktop size
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Initialize Auth & Firestore connection on boot
   useEffect(() => {
@@ -249,7 +222,17 @@ export const App: React.FC = () => {
     }, 4500);
   };
 
-  // Handle image upload from user
+  // Handle candidate selection from the Candidate Selector row
+  const handleSelectCandidate = (candidate: Candidate) => {
+    setSelectedCandidateId(candidate.id);
+    setCandidateName(candidate.name);
+    setCandidateImage(candidate.imageUrl);
+    setImageFileName(candidate.fileName || `${candidate.name.toLowerCase()}.jpg`);
+    setImageLoadError(false);
+    showNotification(`Candidate set to ${candidate.name}. Source material active for Veo.`);
+  };
+
+  // Handle custom image upload from user (via + Add Candidate)
   const handleImageFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
       showNotification('Please upload a valid image file (PNG, JPG, WebP).', 'info');
@@ -260,16 +243,27 @@ export const App: React.FC = () => {
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
       if (dataUrl) {
+        const cleanName =
+          file.name
+            .replace(/\.[^/.]+$/, '')
+            .replace(/[_-]/g, ' ')
+            .trim() || 'Custom Candidate';
+
+        const customCandidate: Candidate = {
+          id: `custom-${Date.now()}`,
+          name: cleanName,
+          imageUrl: dataUrl,
+          fileName: file.name,
+        };
+
+        setCandidates((prev) => [...prev, customCandidate]);
+        setSelectedCandidateId(customCandidate.id);
+        setCandidateName(cleanName);
         setCandidateImage(dataUrl);
         setImageFileName(file.name);
         setIsCustomImage(true);
         setImageLoadError(false);
-        try {
-          localStorage.setItem(LOCAL_STORAGE_IMAGE_KEY, dataUrl);
-        } catch (storageErr) {
-          console.warn('Could not save custom image to localStorage', storageErr);
-        }
-        showNotification(`Source image updated to ${file.name}`);
+        showNotification(`Added ${cleanName} to candidate selector.`);
       }
     };
     reader.onerror = () => {
@@ -283,35 +277,6 @@ export const App: React.FC = () => {
     if (file) {
       handleImageFile(file);
     }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingOver(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDraggingOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleImageFile(file);
-    }
-  };
-
-  const handleResetImage = () => {
-    setCandidateImage(DEFAULT_CANDIDATE_IMAGE);
-    setImageFileName('Hermione_c64626e7.png');
-    setIsCustomImage(false);
-    setImageLoadError(false);
-    try {
-      localStorage.removeItem(LOCAL_STORAGE_IMAGE_KEY);
-    } catch {}
-    showNotification('Reset to master Hermione candidate portrait.');
   };
 
   // Trigger Google Veo 3.1 video render
@@ -328,6 +293,8 @@ export const App: React.FC = () => {
     setRenderStage(
       clipDurationOption === 'extended'
         ? 'Preparing extended multi-clip chained interview sequence...'
+        : clipDurationOption === 'auto'
+        ? `Submitting candidate image and auto-timed (~${speechEstimate.autoSeconds}s) prompt to Google Veo...`
         : 'Submitting candidate image and 8s unhurried prompt to Google Veo...'
     );
 
@@ -356,7 +323,8 @@ export const App: React.FC = () => {
         finalDurationSec = seqResult.totalDurationSec;
         finalSegments = seqResult.segments;
       } else {
-        // Mode '8s': Single clip with silence padding
+        // Mode '8s' or 'auto': Single clip pass
+        const targetDuration = clipDurationOption === 'auto' ? speechEstimate.autoSeconds : 8;
         const veoResult = await generateVeoVideo({
           quote: trimmed,
           candidateName,
@@ -364,7 +332,7 @@ export const App: React.FC = () => {
           customPrompt: customPrompt.trim() || undefined,
           model: 'veo-3.1-lite-generate-preview',
           resolution: '720p',
-          durationSeconds: 8,
+          durationSeconds: targetDuration,
           onProgress: (pct, stage) => {
             setRenderProgress(pct);
             setRenderStage(stage);
@@ -373,7 +341,7 @@ export const App: React.FC = () => {
 
         finalBlob = veoResult.videoBlob;
         finalUrl = veoResult.videoUrl;
-        finalDurationSec = 8.0;
+        finalDurationSec = targetDuration;
         finalSegments = undefined;
       }
 
@@ -512,272 +480,18 @@ export const App: React.FC = () => {
         </div>
       )}
 
+      {/* Sticky Header (Compact on mobile, full width sticky) */}
+      <Header
+        activeView={activeView}
+        onSelectView={setActiveView}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthDialogOpen(true)}
+        candidateName={candidateName}
+        clipsCount={pastQuotes.length}
+      />
+
       {/* Main Layout Shell (1180px Max Width Grid) */}
       <div className="app-shell space-y-16">
-        {/* ========================================================
-            TOP NAVIGATION: Brand, Page Switcher & Direct Actions
-           ======================================================== */}
-        <header className="relative z-30">
-          <nav className="app-nav">
-            {/* Brand Wordmark with Home Action */}
-            <div className="app-nav-brand">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveView('home');
-                  setIsMobileMenuOpen(false);
-                }}
-                className="inline-flex items-center justify-center text-[#dfcdc3]/80 hover:text-[#dfcdc3] transition-colors cursor-pointer"
-                aria-label="Go to Home"
-              >
-                <svg viewBox="0 0 100 100" className="w-5 h-5 fill-current" aria-hidden="true">
-                  <circle cx="50" cy="31" r="9" />
-                  <circle cx="69" cy="69" r="9" />
-                  <circle cx="31" cy="69" r="9" />
-                </svg>
-              </button>
-              <div className="app-nav-title">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveView('home');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="hover:text-white transition-colors cursor-pointer"
-                >
-                  The Users Are Real
-                </button>
-                <span className="app-nav-dot">.</span>
-                <span className="app-nav-subtitle hidden sm:inline">Public Sector User Research Video Synthesis</span>
-              </div>
-            </div>
-
-            {/* Desktop Navigation Links & Action (Visible on tablet/desktop) */}
-            <div className="hidden md:flex items-center gap-5 sm:gap-7 text-xs font-mono">
-              <button
-                type="button"
-                onClick={() => setActiveView('home')}
-                className={`transition-colors cursor-pointer ${
-                  activeView === 'home'
-                    ? 'text-[#dfcdc3] font-semibold border-b border-[#dfcdc3] pb-0.5'
-                    : 'text-[#dfcdc3]/70 hover:text-[#dfcdc3]'
-                }`}
-              >
-                Home
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveView('studio')}
-                className={`transition-colors cursor-pointer ${
-                  activeView === 'studio'
-                    ? 'text-[#dfcdc3] font-semibold border-b border-[#dfcdc3] pb-0.5'
-                    : 'text-[#dfcdc3]/70 hover:text-[#dfcdc3]'
-                }`}
-              >
-                Video Generator
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveView('faq')}
-                className={`transition-colors cursor-pointer ${
-                  activeView === 'faq'
-                    ? 'text-[#dfcdc3] font-semibold border-b border-[#dfcdc3] pb-0.5'
-                    : 'text-[#dfcdc3]/70 hover:text-[#dfcdc3]'
-                }`}
-              >
-                FAQ
-              </button>
-
-              {/* Account & Persistent Cloud Storage */}
-              {currentUser ? (
-                <button
-                  type="button"
-                  onClick={() => setIsAuthDialogOpen(true)}
-                  className="flex items-center gap-2 py-1 px-2.5 bg-[#5f6769]/50 hover:bg-[#5f6769] border border-[#719192]/60 hover:border-[#dfcdc3] rounded-lg text-xs transition-colors cursor-pointer"
-                  title={`Linked to ${currentUser.email || currentUser.displayName || 'your account'}`}
-                >
-                  <div className="w-5 h-5 rounded-full bg-[#719192] flex items-center justify-center text-[10px] font-bold text-[#3c4245] overflow-hidden">
-                    {currentUser.photoURL ? (
-                      <img src={currentUser.photoURL} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      (currentUser.displayName?.[0] || currentUser.email?.[0] || 'U').toUpperCase()
-                    )}
-                  </div>
-                  <span className="max-w-[100px] sm:max-w-[140px] truncate font-sans text-xs">
-                    {currentUser.displayName || currentUser.email?.split('@')[0] || 'Account'}
-                  </span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Cloud Synced" />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsAuthDialogOpen(true)}
-                  className="flex items-center gap-1.5 py-1.5 px-3 bg-[#5f6769]/30 hover:bg-[#5f6769]/70 border border-[#719192]/40 hover:border-[#dfcdc3] rounded-lg text-xs text-[#dfcdc3] transition-colors cursor-pointer"
-                  title="Sign in to link and persist your videos"
-                >
-                  <Cloud className="w-3.5 h-3.5 text-[#719192]" />
-                  <span className="hidden sm:inline">Sign In</span>
-                </button>
-              )}
-
-              {/* Direct Render Action */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveView('studio');
-                  setTimeout(() => {
-                    const el = document.getElementById('user-quote');
-                    el?.focus();
-                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }, 50);
-                }}
-                className="btn-primary py-1.5 px-4 text-xs font-semibold"
-              >
-                New Render
-              </button>
-            </div>
-
-            {/* Mobile Actions: Compact Render Action + Hamburger Toggle */}
-            <div className="flex md:hidden items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveView('studio');
-                  setIsMobileMenuOpen(false);
-                  setTimeout(() => {
-                    const el = document.getElementById('user-quote');
-                    el?.focus();
-                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }, 50);
-                }}
-                className="btn-primary py-1 px-3 text-xs font-semibold"
-              >
-                Render
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-1.5 bg-[#5f6769]/50 hover:bg-[#5f6769] border border-[#719192]/60 hover:border-[#dfcdc3] rounded-xs text-[#dfcdc3] transition-colors cursor-pointer"
-                aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-                aria-expanded={isMobileMenuOpen}
-              >
-                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
-            </div>
-          </nav>
-
-          {/* Mobile Drawer Dropdown Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden absolute top-full left-0 right-0 mt-2 bg-[#525a5c] border border-[#719192] p-4 rounded-xs shadow-2xl space-y-3 z-50">
-              <div className="space-y-1 font-mono text-sm">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveView('home');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xs transition-colors text-left cursor-pointer ${
-                    activeView === 'home'
-                      ? 'bg-[#3c4245] text-[#dfcdc3] font-bold border-l-2 border-[#dfcdc3]'
-                      : 'text-[#dfcdc3]/80 hover:bg-[#3c4245]/50 hover:text-[#dfcdc3]'
-                  }`}
-                >
-                  <span>Home</span>
-                  {activeView === 'home' && <span className="text-[10px] uppercase text-[#719192]">Active</span>}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveView('studio');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xs transition-colors text-left cursor-pointer ${
-                    activeView === 'studio'
-                      ? 'bg-[#3c4245] text-[#dfcdc3] font-bold border-l-2 border-[#dfcdc3]'
-                      : 'text-[#dfcdc3]/80 hover:bg-[#3c4245]/50 hover:text-[#dfcdc3]'
-                  }`}
-                >
-                  <span>Video Generator Studio</span>
-                  {activeView === 'studio' && <span className="text-[10px] uppercase text-[#719192]">Active</span>}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveView('faq');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xs transition-colors text-left cursor-pointer ${
-                    activeView === 'faq'
-                      ? 'bg-[#3c4245] text-[#dfcdc3] font-bold border-l-2 border-[#dfcdc3]'
-                      : 'text-[#dfcdc3]/80 hover:bg-[#3c4245]/50 hover:text-[#dfcdc3]'
-                  }`}
-                >
-                  <span>FAQ &amp; Methodology</span>
-                  {activeView === 'faq' && <span className="text-[10px] uppercase text-[#719192]">Active</span>}
-                </button>
-              </div>
-
-              {/* User Account Section */}
-              <div className="pt-2 border-t border-[#719192]/40">
-                {currentUser ? (
-                  <div className="p-2.5 bg-[#3c4245] border border-[#719192]/50 rounded-xs flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-full bg-[#719192] flex items-center justify-center text-[10px] font-bold text-[#3c4245] shrink-0 overflow-hidden">
-                        {currentUser.photoURL ? (
-                          <img src={currentUser.photoURL} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          (currentUser.displayName?.[0] || currentUser.email?.[0] || 'U').toUpperCase()
-                        )}
-                      </div>
-                      <div className="min-w-0 text-left">
-                        <p className="text-xs text-[#dfcdc3] font-medium truncate">
-                          {currentUser.displayName || currentUser.email?.split('@')[0]}
-                        </p>
-                        <p className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span>Cloud Synced</span>
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setIsAuthDialogOpen(true);
-                      }}
-                      className="text-xs font-mono text-[#dfcdc3]/80 hover:text-white underline p-1 cursor-pointer shrink-0"
-                    >
-                      Manage
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setIsAuthDialogOpen(true);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-[#3c4245] hover:bg-[#3c4245]/80 border border-[#719192]/50 text-xs text-[#dfcdc3] font-mono rounded-xs cursor-pointer transition-colors"
-                  >
-                    <Cloud className="w-3.5 h-3.5 text-[#719192]" />
-                    <span>Sign In to Sync Account</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Quick Spec info */}
-              <div className="pt-1 flex items-center justify-between text-[10px] font-mono text-[#dfcdc3]/60">
-                <span>Candidate: {candidateName} (16:9)</span>
-                <span>{pastQuotes.length} clips recorded</span>
-              </div>
-            </div>
-          )}
-        </header>
 
         {/* ========================================================
             VIEW ROUTING: Homepage, FAQ, or Video Generator Studio
@@ -805,113 +519,16 @@ export const App: React.FC = () => {
           <div className="space-y-12">
 
             {/* ========================================================
-                01. CANDIDATE PROFILE STAGE
+                01. CANDIDATE PROFILE STAGE (Candidate Selector)
                ======================================================== */}
-            <section aria-labelledby="candidate-profile-heading" className="app-section">
-              <div className="app-section-divider">
-                <h2 id="candidate-profile-heading" className="app-section-heading">
-                  <span>01. Candidate Profile &amp; Master Model</span>
-                </h2>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn-secondary"
-                    title="Select Hermione.png or upload a new base photo"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload Base Image</span>
-                  </button>
-                  {isCustomImage && (
-                    <button
-                      type="button"
-                      onClick={handleResetImage}
-                      className="inline-flex items-center gap-1 text-xs text-[#dfcdc3]/70 hover:text-[#dfcdc3] hover:underline p-1 cursor-pointer"
-                      title="Reset to default candidate portrait"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Reset</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* 16:9 Master Candidate Frame */}
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => {
-                  if (!isCustomImage) {
-                    fileInputRef.current?.click();
-                  }
-                }}
-                className={`master-frame ${
-                  isDraggingOver ? 'border-[#dfcdc3] ring-1 ring-[#dfcdc3] bg-[#525a5c]' : 'border-[#719192]/60'
-                } group cursor-pointer`}
-                title="Click or drag & drop to update base image"
-              >
-                {!imageLoadError ? (
-                  <img
-                    src={candidateImage}
-                    alt={`${candidateName}, research participant candidate portrait in 16:9 frame`}
-                    className="w-full h-full object-cover select-none"
-                    referrerPolicy="no-referrer"
-                    onError={() => setImageLoadError(true)}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-[#5f6769] flex flex-col items-center justify-center p-6 text-center">
-                    <ImageIcon className="w-16 h-16 text-[#719192] mb-2 stroke-[1.25]" />
-                    <p className="text-sm font-semibold text-[#dfcdc3]">{candidateName}</p>
-                    <p className="text-xs text-[#dfcdc3]/70 mt-1 font-mono">16:9 Master Video Candidate Frame</p>
-                  </div>
-                )}
-
-                {/* Hover overlay hint */}
-                <div className="absolute inset-0 bg-[#3c4245]/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-[#dfcdc3] p-4 text-center backdrop-blur-xs">
-                  <Upload className="w-6 h-6 mb-1 text-[#dfcdc3]" />
-                  <p className="text-sm font-medium">Replace Base Candidate Image</p>
-                  <p className="text-xs text-[#dfcdc3]/80 mt-0.5 font-mono">Click to choose file or drag &amp; drop Hermione.png</p>
-                </div>
-
-                {/* Viewfinder reticles */}
-                <div className="reticle-tl" />
-                <div className="reticle-tr" />
-                <div className="reticle-bl" />
-                <div className="reticle-br" />
-
-                {/* Top left mono tag */}
-                <div className="frame-tag absolute top-3 left-3 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#719192] animate-dot-pulse" />
-                  <span>16:9 · Master Video Candidate Frame</span>
-                </div>
-
-                {/* Bottom tag indicating candidate asset */}
-                <div className="frame-tag absolute bottom-3 left-3 shadow-sm">
-                  <span className="text-[#dfcdc3]/70">ASSET:</span>
-                  <span className="text-[#dfcdc3] font-medium">{imageFileName || 'Hermione_c64626e7.png'}</span>
-                </div>
-
-                {isCustomImage && (
-                  <div className="frame-tag absolute bottom-3 right-3 shadow-sm">
-                    <Check className="w-3.5 h-3.5 text-[#719192]" />
-                    <span>Custom File Active</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Candidate identification banner (clean, without edit button or subtitle) */}
-              <div className="pt-1">
-                <div className="flex items-center gap-2.5">
-                  <h3 className="text-2xl font-medium text-[#dfcdc3] tracking-tight">
-                    {candidateName}
-                  </h3>
-                  <span className="text-[11px] font-mono bg-[#5f6769] text-[#dfcdc3]/80 px-2 py-0.5 uppercase tracking-wider border border-[#719192]/60">
-                    Candidate #04
-                  </span>
-                </div>
-              </div>
-            </section>
+            <CandidateProfile
+              candidates={candidates}
+              selectedCandidateId={selectedCandidateId}
+              candidateName={candidateName}
+              candidateImage={candidateImage}
+              onSelectCandidate={handleSelectCandidate}
+              onAddCandidateClick={() => fileInputRef.current?.click()}
+            />
 
             {/* ========================================================
                 02. INPUT AREA & RESEARCH STATEMENT
@@ -925,85 +542,108 @@ export const App: React.FC = () => {
                   >
                     02. Enter User Quote &amp; Research Statement
                   </label>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-[#dfcdc3]/70">
-                      {speechEstimate.wordCount} words · {quoteInput.length} chars
-                    </span>
-                  </div>
                 </div>
 
-                {/* Duration Control, Pacing & Verbatim Quote in Single Container */}
-                <div className="p-4 bg-[#525a5c]/40 border border-[#719192]/40 rounded-xs space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-[#719192]" />
-                      <span className="text-[#dfcdc3]/80">Clip Duration:</span>
-                      <div className="inline-flex rounded-xs border border-[#719192]/60 overflow-hidden">
-                        <button
-                          key="8s"
-                          type="button"
-                          onClick={() => setClipDurationOption('8s')}
-                          disabled={isRendering}
-                          className={`px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors flex items-center gap-1.5 ${
-                            clipDurationOption === '8s'
-                              ? 'bg-[#dfcdc3] text-[#3c4245] font-bold shadow-xs'
-                              : 'bg-[#3c4245] text-[#dfcdc3]/70 hover:text-[#dfcdc3] hover:bg-[#5f6769]'
-                          }`}
-                        >
-                          <span>8s</span>
-                          <span className={`text-[10px] ${clipDurationOption === '8s' ? 'text-[#3c4245]/80 font-normal' : 'text-[#dfcdc3]/50'}`}>
-                            (adds silence)
-                          </span>
-                        </button>
+                {/* Unified Container: Main Candidate Image and Verbatim Quote Textarea */}
+                <div className="p-4 sm:p-5 bg-[#525a5c]/40 border border-[#719192]/40 rounded-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+                    {/* Main Candidate Image & Selected Identity */}
+                    <div className="md:col-span-5 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-mono text-[#dfcdc3]/80">
+                        <span className="uppercase tracking-wider font-semibold">Master Candidate Frame</span>
+                        <span className="text-[11px] text-[#dfcdc3]/60 font-mono">16:9 &bull; Veo Source</span>
+                      </div>
 
-                        <button
-                          key="extended"
-                          type="button"
-                          onClick={() => setClipDurationOption('extended')}
-                          disabled={isRendering}
-                          className={`px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors flex items-center gap-1.5 border-l border-[#719192]/60 ${
-                            clipDurationOption === 'extended'
-                              ? 'bg-[#dfcdc3] text-[#3c4245] font-bold shadow-xs'
-                              : 'bg-[#3c4245] text-[#dfcdc3]/70 hover:text-[#dfcdc3] hover:bg-[#5f6769]'
-                          }`}
-                        >
-                          <Layers className="w-3 h-3" />
-                          <span>Extended</span>
-                        </button>
+                      {/* 16:9 Master Candidate Frame (Clean, unlabelled source material) */}
+                      <div className="master-frame border-[#719192]/60 overflow-hidden relative shadow-md bg-[#3c4245]">
+                        {!imageLoadError ? (
+                          <img
+                            src={candidateImage}
+                            alt={`${candidateName}, research participant candidate portrait in 16:9 frame`}
+                            className="w-full h-full object-cover select-none"
+                            referrerPolicy="no-referrer"
+                            onError={() => setImageLoadError(true)}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[#5f6769] flex flex-col items-center justify-center p-4 text-center">
+                            <ImageIcon className="w-10 h-10 text-[#719192] mb-1 stroke-[1.25]" />
+                            <p className="text-sm font-semibold text-[#dfcdc3]">{candidateName}</p>
+                            <p className="text-[11px] text-[#dfcdc3]/70 font-mono">16:9 Master Video Frame</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Candidate Name underneath */}
+                      <div className="flex items-center justify-between pt-0.5">
+                        <h3 className="text-xl sm:text-2xl font-medium text-[#dfcdc3] tracking-tight truncate">
+                          {candidateName}
+                        </h3>
+                        <span className="text-[11px] font-mono text-[#dfcdc3]/75 bg-[#3c4245] px-2 py-0.5 rounded-xs border border-[#719192]/50">
+                          Active Model
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-[#dfcdc3]/70">Pacing:</span>
-                      <span
-                        className={`font-semibold px-2 py-0.5 rounded-xs border ${
-                          clipDurationOption === 'extended'
-                            ? 'bg-blue-950/60 text-blue-300 border-blue-500/40'
-                            : speechEstimate.status === 'optimal'
-                            ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
-                            : speechEstimate.status === 'warning'
-                            ? 'bg-amber-950/60 text-amber-300 border-amber-500/40'
-                            : 'bg-rose-950/60 text-rose-300 border-rose-500/40'
-                        }`}
-                      >
-                        {clipDurationOption === 'extended'
-                          ? `${speechEstimate.segments.length || 1} chained clip${(speechEstimate.segments.length || 1) > 1 ? 's' : ''} (~${speechEstimate.totalExtendedSeconds}s total)`
-                          : `~${speechEstimate.estimatedSeconds}s / 8s (pads silence)`}
-                      </span>
-                    </div>
-                  </div>
+                    {/* Verbatim Quote Textarea with Duration & Pacing Controls */}
+                    <div className="md:col-span-7 flex flex-col justify-between space-y-3">
+                      <div className="space-y-1.5">
+                        <label
+                          htmlFor="user-quote"
+                          className="flex items-center justify-between text-xs font-mono text-[#dfcdc3]/80 font-semibold uppercase tracking-wider"
+                        >
+                          <span>Verbatim Quote / Script</span>
+                          <span className="text-[11px] text-[#dfcdc3]/60 font-normal lowercase">spoken by {candidateName}</span>
+                        </label>
+                        <textarea
+                          id="user-quote"
+                          name="user-quote"
+                          rows={5}
+                          value={quoteInput}
+                          onChange={(e) => setQuoteInput(e.target.value)}
+                          disabled={isRendering}
+                          placeholder="Type or paste the participant's exact statement..."
+                          className="w-full bg-white text-gray-900 border border-[#719192] p-3.5 text-sm sm:text-base font-serif rounded-xs focus:outline-none focus:ring-2 focus:ring-[#3c4245] focus:border-[#3c4245] leading-relaxed resize-vertical shadow-xs min-h-[140px]"
+                        />
+                      </div>
 
-                  {/* Verbatim quote textarea inside the same container (white background, no ghost text) */}
-                  <div className="relative pt-1">
-                    <textarea
-                      id="user-quote"
-                      name="user-quote"
-                      rows={4}
-                      value={quoteInput}
-                      onChange={(e) => setQuoteInput(e.target.value)}
-                      disabled={isRendering}
-                      className="w-full bg-white text-gray-900 border border-[#719192] p-3.5 text-sm sm:text-base font-serif rounded-xs focus:outline-none focus:ring-2 focus:ring-[#3c4245] focus:border-[#3c4245] leading-relaxed resize-vertical shadow-xs"
-                    />
+                      {/* Bottom Info Bar: Duration Mode Indicator & Pacing Status */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono pt-1 border-t border-[#719192]/25">
+                        <div className="flex items-center gap-2 text-xs text-[#dfcdc3]/75">
+                          <Clock className="w-3.5 h-3.5 text-[#719192]" />
+                          <span>Duration:</span>
+                          <span className="font-semibold text-[#dfcdc3]">
+                            {clipDurationOption === 'auto'
+                              ? `AUTO (~${speechEstimate.autoSeconds}s)`
+                              : clipDurationOption === 'extended'
+                              ? `Extended (~${speechEstimate.totalExtendedSeconds}s)`
+                              : '8s'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-[#dfcdc3]/70">Pacing:</span>
+                          <span
+                            className={`font-semibold px-2 py-0.5 rounded-xs border ${
+                              clipDurationOption === 'extended'
+                                ? 'bg-blue-950/60 text-blue-300 border-blue-500/40'
+                                : clipDurationOption === 'auto'
+                                ? 'bg-cyan-950/60 text-cyan-200 border-cyan-500/40'
+                                : speechEstimate.status === 'optimal'
+                                ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+                                : speechEstimate.status === 'warning'
+                                ? 'bg-amber-950/60 text-amber-300 border-amber-500/40'
+                                : 'bg-rose-950/60 text-rose-300 border-rose-500/40'
+                            }`}
+                          >
+                            {clipDurationOption === 'extended'
+                              ? `${speechEstimate.segments.length || 1} chained clip${(speechEstimate.segments.length || 1) > 1 ? 's' : ''} (~${speechEstimate.totalExtendedSeconds}s total)`
+                              : clipDurationOption === 'auto'
+                              ? `Auto: ~${speechEstimate.autoSeconds}s (nearest sec)`
+                              : `~${speechEstimate.estimatedSeconds}s / 8s (pads silence)`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1098,44 +738,133 @@ export const App: React.FC = () => {
                   </button>
 
                   {showAdvancedPrompt && (
-                    <div className="mt-2.5 p-4 bg-[#525a5c] border border-[#719192]/60 rounded-xs space-y-3">
-                      <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-[#dfcdc3] font-medium uppercase tracking-wider flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#719192]" />
-                          Google Veo Prompt (Directly Editable)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsPromptManuallyEdited(false);
-                            const fresh = buildVeoPrompt({
-                              candidateName,
-                              quote: quoteInput.trim() || 'User research statement',
-                            });
-                            setCustomPrompt(fresh);
-                            showNotification('Prompt reset to default formula with British accent & limited movement.');
-                          }}
-                          className="text-[11px] text-[#dfcdc3]/75 hover:text-white underline cursor-pointer"
-                        >
-                          Reset to Default
-                        </button>
+                    <div className="mt-2.5 p-4 bg-[#525a5c] border border-[#719192]/60 rounded-xs space-y-4">
+                      {/* 1. Clip Duration & Controls (Stacked on mobile breakpoint) */}
+                      <div className="p-3 bg-[#3c4245]/70 border border-[#719192]/50 rounded-xs space-y-2.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs font-mono">
+                          <div className="flex items-center gap-2 text-[#dfcdc3] font-medium">
+                            <Clock className="w-3.5 h-3.5 text-[#719192]" />
+                            <span className="uppercase tracking-wider">Clip Duration</span>
+                          </div>
+                          <span className="text-[11px] text-[#dfcdc3]/65">
+                            {clipDurationOption === 'auto'
+                              ? 'Automatically rounded to nearest second'
+                              : clipDurationOption === '8s'
+                              ? 'Fixed 8-second standard duration (pads silence)'
+                              : 'Multi-scene chained interview sequence'}
+                          </span>
+                        </div>
+
+                        {/* Buttons: stacked vertically on mobile breakpoint (< sm), inline-flex row on sm+ */}
+                        <div className="flex flex-col sm:inline-flex sm:flex-row w-full sm:w-auto rounded-xs border border-[#719192]/60 overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-[#719192]/60">
+                          <button
+                            key="auto"
+                            type="button"
+                            onClick={() => setClipDurationOption('auto')}
+                            disabled={isRendering}
+                            className={`px-3 py-2 text-xs font-medium cursor-pointer transition-colors flex items-center justify-center sm:justify-start gap-1.5 ${
+                              clipDurationOption === 'auto'
+                                ? 'bg-[#dfcdc3] text-[#3c4245] font-bold shadow-xs'
+                                : 'bg-[#3c4245] text-[#dfcdc3]/70 hover:text-[#dfcdc3] hover:bg-[#5f6769]'
+                            }`}
+                          >
+                            <Clock className="w-3 h-3" />
+                            <span>AUTO</span>
+                            <span
+                              className={`text-[10px] ${
+                                clipDurationOption === 'auto' ? 'text-[#3c4245]/80 font-normal' : 'text-[#dfcdc3]/50'
+                              }`}
+                            >
+                              (nearest sec)
+                            </span>
+                          </button>
+
+                          <button
+                            key="8s"
+                            type="button"
+                            onClick={() => setClipDurationOption('8s')}
+                            disabled={isRendering}
+                            className={`px-3 py-2 text-xs font-medium cursor-pointer transition-colors flex items-center justify-center sm:justify-start gap-1.5 ${
+                              clipDurationOption === '8s'
+                                ? 'bg-[#dfcdc3] text-[#3c4245] font-bold shadow-xs'
+                                : 'bg-[#3c4245] text-[#dfcdc3]/70 hover:text-[#dfcdc3] hover:bg-[#5f6769]'
+                            }`}
+                          >
+                            <span>8s</span>
+                            <span
+                              className={`text-[10px] ${
+                                clipDurationOption === '8s' ? 'text-[#3c4245]/80 font-normal' : 'text-[#dfcdc3]/50'
+                              }`}
+                            >
+                              (adds silence)
+                            </span>
+                          </button>
+
+                          <button
+                            key="extended"
+                            type="button"
+                            onClick={() => setClipDurationOption('extended')}
+                            disabled={isRendering}
+                            className={`px-3 py-2 text-xs font-medium cursor-pointer transition-colors flex items-center justify-center sm:justify-start gap-1.5 ${
+                              clipDurationOption === 'extended'
+                                ? 'bg-[#dfcdc3] text-[#3c4245] font-bold shadow-xs'
+                                : 'bg-[#3c4245] text-[#dfcdc3]/70 hover:text-[#dfcdc3] hover:bg-[#5f6769]'
+                            }`}
+                          >
+                            <Layers className="w-3 h-3" />
+                            <span>Extended</span>
+                            <span
+                              className={`text-[10px] ${
+                                clipDurationOption === 'extended' ? 'text-[#3c4245]/80 font-normal' : 'text-[#dfcdc3]/50'
+                              }`}
+                            >
+                              (chaining)
+                            </span>
+                          </button>
+                        </div>
                       </div>
 
-                      <textarea
-                        rows={4}
-                        value={customPrompt}
-                        onChange={(e) => {
-                          setCustomPrompt(e.target.value);
-                          setIsPromptManuallyEdited(true);
-                        }}
-                        disabled={isRendering}
-                        className="w-full bg-[#3c4245] border border-[#719192]/60 p-3 text-xs font-mono text-[#dfcdc3] rounded-xs focus:outline-none focus:border-[#dfcdc3] leading-relaxed resize-vertical"
-                        placeholder="Inspect or edit prompt passed to Google Veo..."
-                      />
+                      {/* 2. Google Veo Prompt (Directly Editable) */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span className="text-[#dfcdc3] font-medium uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#719192]" />
+                            Google Veo Prompt (Directly Editable)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPromptManuallyEdited(false);
+                              const fresh = buildVeoPrompt({
+                                candidateName,
+                                quote: quoteInput.trim() || 'User research statement',
+                                mode: clipDurationOption,
+                              });
+                              setCustomPrompt(fresh);
+                              showNotification('Prompt reset to default formula with British accent & limited movement.');
+                            }}
+                            className="text-[11px] text-[#dfcdc3]/75 hover:text-white underline cursor-pointer"
+                          >
+                            Reset to Default
+                          </button>
+                        </div>
 
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] font-mono text-[#dfcdc3]/65 gap-1 pt-0.5">
-                        <span>Directives: British accent vocal articulation &amp; limited static movement included.</span>
-                        <span>{customPrompt.length} characters</span>
+                        <textarea
+                          rows={4}
+                          value={customPrompt}
+                          onChange={(e) => {
+                            setCustomPrompt(e.target.value);
+                            setIsPromptManuallyEdited(true);
+                          }}
+                          disabled={isRendering}
+                          className="w-full bg-[#3c4245] border border-[#719192]/60 p-3 text-xs font-mono text-[#dfcdc3] rounded-xs focus:outline-none focus:border-[#dfcdc3] leading-relaxed resize-vertical"
+                          placeholder="Inspect or edit prompt passed to Google Veo..."
+                        />
+
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] font-mono text-[#dfcdc3]/65 gap-1 pt-0.5">
+                          <span>Directives: British accent vocal articulation &amp; limited static movement included.</span>
+                          <span>{customPrompt.length} characters</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1200,164 +929,18 @@ export const App: React.FC = () => {
             </section>
 
             {/* ========================================================
-                03. RENDER ARCHIVE (Persistent Storage)
+                03. RENDER ARCHIVE (Modular Include)
                ======================================================== */}
-            <section aria-labelledby="render-archive-heading" className="space-y-6 pt-4">
-              <div className="app-section-divider">
-                <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-                  <div className="flex items-center gap-3">
-                    <h2 id="render-archive-heading" className="app-section-heading">
-                      03. Render Archive
-                    </h2>
-                    <span className="text-[11px] font-mono text-[#dfcdc3]/70">
-                      [{pastQuotes.length} {pastQuotes.length === 1 ? 'item' : 'items'} · {currentUser ? 'Linked to Account' : 'Stored Locally'}]
-                    </span>
-                  </div>
-
-                  {currentUser ? (
-                    <div className="flex items-center gap-2 text-xs font-mono text-emerald-300 bg-[#3c4245]/60 border border-emerald-500/30 px-3 py-1 rounded-lg">
-                      <Cloud className="w-3.5 h-3.5" />
-                      <span>{currentUser.email || currentUser.displayName || 'Account Synced'}</span>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsAuthDialogOpen(true)}
-                      className="flex items-center gap-1.5 text-xs font-mono text-[#719192] hover:text-[#dfcdc3] underline cursor-pointer"
-                    >
-                      <Cloud className="w-3.5 h-3.5" />
-                      <span>Sign in to sync archive</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* History Items - Blank state with placeholder & subtle login link */}
-              {pastQuotes.length === 0 ? (
-                <div className="text-center py-12 px-4 border border-dashed border-[#719192]/40 bg-[#5f6769]/30 rounded-xs space-y-2">
-                  <Film className="w-7 h-7 text-[#dfcdc3]/40 mx-auto mb-1" />
-                  <p className="text-sm font-medium text-[#dfcdc3]">No rendered videos in archive</p>
-                  <p className="text-xs text-[#dfcdc3]/70 max-w-sm mx-auto leading-relaxed">
-                    Render a research quote above to begin your archive, or{' '}
-                    <button
-                      type="button"
-                      onClick={() => setIsAuthDialogOpen(true)}
-                      className="text-[#dfcdc3] underline hover:text-white transition-colors cursor-pointer font-medium"
-                    >
-                      login
-                    </button>{' '}
-                    to access previously saved clips.
-                  </p>
-                </div>
-              ) : (
-                <ul className="divide-y divide-[#719192]/30" role="list">
-                  {pastQuotes.map((item) => (
-                    <li
-                      key={item.id}
-                      className="archive-item group"
-                    >
-                      <div className="flex items-start gap-4 flex-1 min-w-0">
-                        {/* Small 16:9 thumbnail */}
-                        <div
-                          className="video-thumbnail group/thumb"
-                          onClick={() => setActivePreviewQuote(item)}
-                          title="Click to play video"
-                        >
-                          <img
-                            src={item.thumbnailUrl || candidateImage}
-                            alt={`16:9 thumbnail of ${candidateName} delivering quote`}
-                            className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-200"
-                            referrerPolicy="no-referrer"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-black/40 group-hover/thumb:bg-black/60 flex items-center justify-center transition-colors">
-                            <div className="w-7 h-7 rounded-full bg-[#dfcdc3] text-[#3c4245] flex items-center justify-center shadow-md">
-                              <Play className="w-3 h-3 fill-current translate-x-0.5" />
-                            </div>
-                          </div>
-
-                          {/* Video duration badge */}
-                          <div className="absolute bottom-1 right-1 bg-[#3c4245]/90 text-[#dfcdc3] font-mono text-[9.5px] px-1 py-0.2 rounded-2xs flex items-center gap-1">
-                            {item.segments && item.segments.length > 1 ? (
-                              <>
-                                <Layers className="w-2.5 h-2.5 text-blue-300" />
-                                <span>{Math.floor(item.durationSec || 16)}s ({item.segments.length}P)</span>
-                              </>
-                            ) : (
-                              <span>{Math.floor(item.durationSec || 8)}s</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Text snippet of the quote & The date it was generated */}
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className="text-sm sm:text-[15px] text-[#dfcdc3] line-clamp-2 leading-relaxed font-normal cursor-pointer hover:text-white"
-                            onClick={() => setActivePreviewQuote(item)}
-                          >
-                            &ldquo;{item.quote}&rdquo;
-                          </p>
-                          <div className="mt-2 flex items-center gap-2 text-xs text-[#dfcdc3]/70 flex-wrap">
-                            <span className="font-medium text-[#dfcdc3]">{candidateName}</span>
-                            <span>·</span>
-                            <time dateTime={item.generatedDate} className="font-mono text-[11.5px] text-[#dfcdc3]/60">
-                              {item.generatedDate}
-                            </time>
-                            <span>·</span>
-                            <span className="badge-veo">
-                              Google Veo 3.1
-                            </span>
-                            {item.segments && item.segments.length > 1 && (
-                              <>
-                                <span>·</span>
-                                <span className="bg-blue-950/60 border border-blue-500/40 text-blue-300 px-1.5 py-0.5 rounded-2xs text-[10px] font-mono flex items-center gap-1">
-                                  <Layers className="w-2.5 h-2.5" />
-                                  Extended ({item.segments.length} Parts)
-                                </span>
-                              </>
-                            )}
-                            <span>·</span>
-                            <button
-                              type="button"
-                              onClick={() => setActivePreviewQuote(item)}
-                              className="font-medium text-[#dfcdc3]/90 hover:text-white underline underline-offset-3 decoration-[#719192] hover:decoration-[#dfcdc3] flex items-center gap-1 cursor-pointer transition-colors"
-                            >
-                              <Play className="w-2.5 h-2.5 fill-current" />
-                              <span>Watch video</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action buttons: Download & Delete */}
-                      <div className="flex items-center gap-1 self-end sm:self-center shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleDownload(item)}
-                          className="icon-btn"
-                          title="Download video file (.mp4)"
-                          aria-label={`Download video clip for quote: ${item.quote.slice(0, 30)}...`}
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(item.id)}
-                          className="icon-btn icon-btn-delete"
-                          title="Delete quote"
-                          aria-label={`Delete quote: ${item.quote.slice(0, 30)}...`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            <RenderArchive
+              pastQuotes={pastQuotes}
+              currentUser={currentUser}
+              candidateName={candidateName}
+              candidateImage={candidateImage}
+              onOpenAuth={() => setIsAuthDialogOpen(true)}
+              onPlayQuote={(item) => setActivePreviewQuote(item)}
+              onDownloadQuote={handleDownload}
+              onDeleteQuote={handleDelete}
+            />
           </div>
         )}
 
@@ -1385,21 +968,9 @@ export const App: React.FC = () => {
         />
 
         {/* ========================================================
-            FOOTER: Service Details & Mission
+            FOOTER (Modular Include)
            ======================================================== */}
-        <footer className="app-footer">
-          <div className="flex items-center gap-3">
-            <svg viewBox="0 0 100 100" className="w-4 h-4 fill-current text-[#dfcdc3]/60" aria-hidden="true">
-              <circle cx="50" cy="31" r="9" />
-              <circle cx="69" cy="69" r="9" />
-              <circle cx="31" cy="69" r="9" />
-            </svg>
-            <span>The Users Are Real · Synthetic Participant Video Studio</span>
-          </div>
-          <div className="font-mono text-[11px] text-[#dfcdc3]/40">
-            British Accent · Limited Movement · Google Veo 3.1
-          </div>
-        </footer>
+        <Footer />
       </div>
     </div>
   );

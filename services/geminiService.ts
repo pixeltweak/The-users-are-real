@@ -13,7 +13,7 @@ export interface VeoGenerationRequest {
   model?: 'veo-3.1-lite-generate-preview' | 'veo-3.1-generate-preview';
   resolution?: '720p' | '1080p';
   aspectRatio?: '16:9' | '9:16';
-  durationSeconds?: 5 | 6 | 8;
+  durationSeconds?: number;
   onProgress?: (progress: number, stageMessage: string) => void;
 }
 
